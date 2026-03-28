@@ -22,6 +22,7 @@ import numpy as np
 from cs224r.infrastructure import pytorch_util as ptu
 from cs224r.infrastructure.logger import Logger
 from cs224r.infrastructure import utils
+from cs224r.agents.bc_agent import BCAgent
 
 # The number of rollouts to save to videos in PyTorch
 MAX_NVIDEO = 2
@@ -111,7 +112,7 @@ class BCTrainer:
         #############
 
         agent_class = self.params['agent_class']
-        self.agent = agent_class(self.env, self.params['agent_params'])
+        self.agent: BCAgent = agent_class(self.env, self.params['agent_params'])
 
     def run_training_loop(self, n_iter, collect_policy, eval_policy,
                         initial_expertdata=None, relabel_with_expert=False,
@@ -243,12 +244,21 @@ class BCTrainer:
             # TODO sample some data from the data buffer
             # HINT1: use the agent's sample function
             # HINT2: how much data = self.params['train_batch_size']
-            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = TODO
+            """
+            ob_batch = observations (current states)
+            ac_batch = actions
+            re_batch = rewards
+            next_ob_batch = next obervations (next states)
+            terminal_batch = bool if end state or not
+
+            For behaviour cloning we don't need rewards but do it here eitherway
+            """
+            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.agent.sample(self.params['train_batch_size'])
 
             # TODO use the sampled data to train an agent
             # HINT: use the agent's train function
             # HINT: keep the agent's training log for debugging
-            train_log = TODO
+            train_log = self.agent.train(ob_batch, ac_batch)
             all_logs.append(train_log)
         return all_logs
 
@@ -266,7 +276,11 @@ class BCTrainer:
         # HINT: query the policy (using the get_action function) with paths[i]["observation"]
         # and replace paths[i]["action"] with these expert labels
 
-        raise NotImplementedError
+        expert_actions = [expert_policy.get_action(path["observation"]) for path in paths]
+        for path, expert_action in zip(paths, expert_actions):
+            path["action"] = expert_action
+
+        return paths
 
     ####################################
     ####################################

@@ -120,6 +120,8 @@ class ReplayBuffer():
                 == self.terminals.shape[0]
         )
 
+        assert (self.obs.shape[0] > batch_size)
+
         ## TODO return batch_size number of random entries\
         ## from each of the 5 component arrays above
         ## HINT 1: use np.random.permutation to sample random indices
@@ -127,8 +129,15 @@ class ReplayBuffer():
         ## (i.e., not different indices from each array)
         ## HINT 3: look at the sample_recent_data function below
         ## Note that rews, next_obs, and terminals are not used for BC
-
-        raise NotImplementedError
+        
+        current_size = self.obs.shape[0]
+        random_indices = np.random.permutation(current_size)
+        obs = self.obs[random_indices][:batch_size,:]
+        acs = self.acs[random_indices][:batch_size,:]
+        rews = self.rews[random_indices][:batch_size,:]
+        next_obs = self.next_obs[random_indices][:batch_size,:]
+        terminals = self.terminals[random_indices][:batch_size,:]
+        return obs, acs, rews, next_obs, terminals
     
     def sample_recent_data(self, batch_size=1):
         """
