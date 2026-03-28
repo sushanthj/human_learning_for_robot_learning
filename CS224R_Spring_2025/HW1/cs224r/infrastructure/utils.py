@@ -51,9 +51,12 @@ def sample_trajectory(env, policy, max_path_length, render=False):
         acs.append(ac)
 
         # Take that action and record results
-        ob, rew, terminated, truncated, info = env.step(ac)
+        ob, rew, done, info = env.step(ac)
 
         """
+        I think we are using old API of openAI gym which returns 4 values (ob, rew, done, info) from env.step()
+
+        # NEW API of openAI gymnasium returns 5 values
         - ob: the observation that resulted from taking that action
         - rew: the reward that resulted from taking that action
         - terminated: the episode ended because of the environment's rules (e.g., the robot reached the goal, or fell over — a "natural" ending)                                          
@@ -68,8 +71,8 @@ def sample_trajectory(env, policy, max_path_length, render=False):
 
         # TODO end the rollout if the rollout ended
         # HINT: rollout can end due to termination, or due to max_path_length
-        rollout_done = (terminated or truncated) or (steps >= max_path_length)
-        terminals.append(terminated)
+        rollout_done = done or (steps >= max_path_length)
+        terminals.append(done)
 
         if rollout_done:
             break
@@ -90,7 +93,7 @@ def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, r
         # sample a trajectory
         trajectory: Path = sample_trajectory(env, policy, max_path_length, render)
         paths.append(trajectory)
-        timesteps_this_batch += trajectory['observations'].shape[0]
+        timesteps_this_batch += get_pathlength(trajectory)
 
     return paths, timesteps_this_batch
 

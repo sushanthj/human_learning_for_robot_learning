@@ -115,6 +115,9 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         with torch.inference_mode():
             action, _, _ = self.forward(observation=observation)
         
+        if isinstance(action, torch.Tensor):
+            action = ptu.to_numpy(action)
+        
         return action
         
 
@@ -140,9 +143,9 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # Create Gaussian distribution based on prediction
         gaussian = distributions.Normal(mean, std)
         # sample action from distribution
-        action_sample = gaussian.rsample() # rsample let's us do autograd upto mean and std
+        action = gaussian.rsample() # rsample let's us do autograd upto mean and std
 
-        return action_sample, mean, std
+        return action, mean, std
 
     def update(self, observations, actions):
         """
@@ -165,11 +168,6 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         var = var.expand_as(predicted_mean)
         if isinstance(actions, np.ndarray):
             actions = ptu.from_numpy(actions)
-
-
-        print(f'mean shape = {predicted_mean.shape}')
-        print(f'actions shape = {actions.shape}')
-        print(f'Variance shape = {var.shape}')
         
         nll_loss = nn.GaussianNLLLoss()
         loss = nll_loss(predicted_mean, actions, var)
