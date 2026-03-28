@@ -207,6 +207,8 @@ class BCTrainer:
         # HINT4: You want each of these collected rollouts to be of length self.params['ep_len']
 
         print("\nCollecting data to be used for training...")
+        train_video_paths = None
+
         if itr == 0 and load_initial_expertdata is not None:
             with open(load_initial_expertdata, 'rb') as f:
                 expert_data = pickle.load(f)
@@ -223,8 +225,6 @@ class BCTrainer:
             if self.log_video:
                 train_video_paths = utils.sample_n_trajectories(self.env,
                     collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
-            else:
-                train_video_paths = None
             
             print('\nCollecting train rollouts to be used for just training (no videos)...')
             paths = utils.sample_trajectories(self.env, collect_policy,

@@ -131,12 +131,13 @@ class ReplayBuffer():
         ## Note that rews, next_obs, and terminals are not used for BC
         
         current_size = self.obs.shape[0]
+        print(f"obs shape: {self.obs.shape}, acs shape: {self.acs.shape}, rews shape: {self.rews.shape}, next_obs shape: {self.next_obs.shape}, terminals shape: {self.terminals.shape}")
         random_indices = np.random.permutation(current_size)
         obs = self.obs[random_indices][:batch_size,:]
         acs = self.acs[random_indices][:batch_size,:]
-        rews = self.rews[random_indices][:batch_size,:]
+        rews = self.rews[random_indices][:batch_size]
         next_obs = self.next_obs[random_indices][:batch_size,:]
-        terminals = self.terminals[random_indices][:batch_size,:]
+        terminals = self.terminals[random_indices][:batch_size]
         return obs, acs, rews, next_obs, terminals
     
     def sample_recent_data(self, batch_size=1):

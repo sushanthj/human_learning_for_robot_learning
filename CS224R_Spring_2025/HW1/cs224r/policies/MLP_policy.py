@@ -108,6 +108,8 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs
         else:
             observation = obs[None]
+        if isinstance(observation, np.ndarray):
+            observation = ptu.from_numpy(observation)
 
         # TODO return the action that the policy prescribes
         with torch.inference_mode():
@@ -153,9 +155,25 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         """
         # TODO: update the policy and return the loss. Recall that to update the policy
         # you need to backpropagate the gradient and step the optimizer.
+        if isinstance(observations, np.ndarray):
+            observations = ptu.from_numpy(observations)
+        
         _, predicted_mean, predicted_std = self.forward(observations)
+        
+        # fix shapes
+        var:torch.Tensor = predicted_std**2
+        var = var.expand_as(predicted_mean)
+        if isinstance(actions, np.ndarray):
+            actions = ptu.from_numpy(actions)
+
+
+        print(f'mean shape = {predicted_mean.shape}')
+        print(f'actions shape = {actions.shape}')
+        print(f'Variance shape = {var.shape}')
+        
         nll_loss = nn.GaussianNLLLoss()
-        loss = nll_loss(predicted_mean, actions, predicted_std**2)
+        loss = nll_loss(predicted_mean, actions, var)
+        
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()

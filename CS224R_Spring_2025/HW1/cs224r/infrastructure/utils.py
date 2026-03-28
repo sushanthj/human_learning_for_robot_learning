@@ -25,7 +25,8 @@ def sample_trajectory(env, policy, max_path_length, render=False):
     :render: whether to save images from the rollout
     """
     # Initialize environment for the beginning of a new rollout
-    ob = TODO # HINT: should be the output of resetting the env
+    # ob = TODO # HINT: should be the output of resetting the env
+    ob = env.reset()
 
     # Initialize data storage for across the trajectory
     # You'll mainly be concerned with: obs (list of observations), acs (list of actions)
@@ -45,12 +46,20 @@ def sample_trajectory(env, policy, max_path_length, render=False):
 
         # Use the most recent observation to decide what to do
         obs.append(ob)
-        ac = TODO # HINT: Query the policy's get_action function
+        ac = policy.get_action(ob)
         ac = ac[0]
         acs.append(ac)
 
         # Take that action and record results
-        ob, rew, done, _ = env.step(ac)
+        ob, rew, terminated, truncated, info = env.step(ac)
+
+        """
+        - ob: the observation that resulted from taking that action
+        - rew: the reward that resulted from taking that action
+        - terminated: the episode ended because of the environment's rules (e.g., the robot reached the goal, or fell over — a "natural" ending)                                          
+        - truncated: the episode was cut short because it hit a time limit, not because anything terminal happened in the environment
+        - info: a dictionary that may contain extra information
+        """
 
         # Record result of taking that action
         steps += 1
@@ -58,9 +67,9 @@ def sample_trajectory(env, policy, max_path_length, render=False):
         rewards.append(rew)
 
         # TODO end the rollout if the rollout ended
-        # HINT: rollout can end due to done, or due to max_path_length
-        rollout_done = TODO # HINT: this is either 0 or 1
-        terminals.append(rollout_done)
+        # HINT: rollout can end due to termination, or due to max_path_length
+        rollout_done = (terminated or truncated) or (steps >= max_path_length)
+        terminals.append(terminated)
 
         if rollout_done:
             break
@@ -78,9 +87,10 @@ def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, r
     timesteps_this_batch = 0
     paths = []
     while timesteps_this_batch < min_timesteps_per_batch:
-
-        # TODO
-        pass
+        # sample a trajectory
+        trajectory: Path = sample_trajectory(env, policy, max_path_length, render)
+        paths.append(trajectory)
+        timesteps_this_batch += trajectory['observations'].shape[0]
 
     return paths, timesteps_this_batch
 
