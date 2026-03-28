@@ -26,6 +26,9 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     """
     Defines an MLP for supervised learning which maps observations to actions
 
+    * Here we have an MLP to predict the mean of a Gaussian Distribution.
+    * We also have a separate parameter to learn the log standard deviation of the Gaussian distribution.
+
     Attributes
     ----------
     logits_na: nn.Sequential
@@ -95,6 +98,8 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     def get_action(self, obs: np.ndarray) -> np.ndarray:
         """
+        This is essentially an inference step
+
         :param obs: observation(s) to query the policy
         :return:
             action: sampled action(s) from the policy
@@ -105,7 +110,11 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs[None]
 
         # TODO return the action that the policy prescribes
-        raise NotImplementedError
+        with torch.inference_mode():
+            action, _, _ = self.forward(observation=observation)
+        
+        return action
+        
 
     def forward(self, observation: torch.FloatTensor) -> Any:
         """
@@ -120,21 +129,36 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # through it. For example, you can return a torch.FloatTensor. You can also
         # return more flexible objects, such as a
         # `torch.distributions.Distribution` object. It's up to you!
+
+        # Predict Gaussian's mean
+        mean = self.mean_net(observation)
+        # Predict Gaussian's standard deviation
+        std = torch.exp(self.logstd)
         
-        raise NotImplementedError
+        # Create Gaussian distribution based on prediction
+        gaussian = distributions.Normal(mean, std)
+        # sample action from distribution
+        action_sample = gaussian.rsample() # rsample let's us do autograd upto mean and std
+
+        return action_sample, mean, std
 
     def update(self, observations, actions):
         """
         Updates/trains the policy
 
-        :param observations: observation(s) to query the policy
-        :param actions: actions we want the policy to imitate
+        :param observations: observation(s) to query the policy (robot state)
+        :param actions: actions we want the policy to imitate (expert actions)
         :return:
             dict: 'Training Loss': supervised learning loss
         """
         # TODO: update the policy and return the loss. Recall that to update the policy
         # you need to backpropagate the gradient and step the optimizer.
-        loss = TODO
+        _, predicted_mean, predicted_std = self.forward(observations)
+        nll_loss = nn.GaussianNLLLoss()
+        loss = nll_loss(predicted_mean, actions, predicted_std**2)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
         return {
             'Training Loss': ptu.to_numpy(loss),
