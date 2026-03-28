@@ -206,16 +206,29 @@ class BCTrainer:
         # HINT4: You want each of these collected rollouts to be of length self.params['ep_len']
 
         print("\nCollecting data to be used for training...")
-        paths, envsteps_this_batch = TODO
+        if itr == 0 and load_initial_expertdata is not None:
+            with open(load_initial_expertdata, 'rb') as f:
+                expert_data = pickle.load(f)
+            paths = expert_data
+            envsteps_this_batch = sum([utils.get_pathlength(path) for path in paths])
+        elif itr > 0 or load_initial_expertdata is None:
+            # collect more rollouts with the same policy, to be saved as videos in tensorboard
+            """
+            ep_len : the maximum length of a single episode/trajectory (max timesteps)                               
+            batch_size: total timesteps across all trajectories in this batch
+            """
 
-        # collect more rollouts with the same policy, to be saved as videos in tensorboard
-        # note: here, we collect MAX_NVIDEO rollouts, each of length MAX_VIDEO_LEN
-        train_video_paths = None
-        if self.log_video:            
-            ## TODO look in utils and implement sample_n_trajectories
             print('\nCollecting train rollouts to be used for saving videos...')
-            train_video_paths = utils.sample_n_trajectories(self.env,
-                collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
+            if self.log_video:
+                train_video_paths = utils.sample_n_trajectories(self.env,
+                    collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
+            else:
+                train_video_paths = None
+            
+            print('\nCollecting train rollouts to be used for just training (no videos)...')
+            paths = utils.sample_trajectories(self.env, collect_policy,
+                min_timesteps_per_batch=self.params['batch_size'], max_path_length=self.params['ep_len'])
+            envsteps_this_batch = sum([utils.get_pathlength(path) for path in paths])
 
         return paths, envsteps_this_batch, train_video_paths
 

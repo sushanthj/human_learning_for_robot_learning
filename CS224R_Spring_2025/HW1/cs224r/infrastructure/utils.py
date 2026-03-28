@@ -91,9 +91,7 @@ def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False):
         TODO implement this function
         Hint1: use sample_trajectory to get each path (i.e. rollout) that goes into paths
     """
-    paths = []
-        
-    TODO
+    paths = [sample_trajectory(env, policy, max_path_length, render) for _ in range(ntraj)]
 
     return paths
 
