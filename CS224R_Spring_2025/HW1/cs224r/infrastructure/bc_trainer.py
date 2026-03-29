@@ -227,9 +227,9 @@ class BCTrainer:
                     collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
             
             print('\nCollecting train rollouts to be used for just training (no videos)...')
-            paths = utils.sample_trajectories(self.env, collect_policy,
+            paths, timsteps_in_batch = utils.sample_trajectories(self.env, collect_policy,
                 min_timesteps_per_batch=self.params['batch_size'], max_path_length=self.params['ep_len'])
-            envsteps_this_batch = sum([utils.get_pathlength(path) for path in paths])
+            envsteps_this_batch = timsteps_in_batch
 
         return paths, envsteps_this_batch, train_video_paths
 
