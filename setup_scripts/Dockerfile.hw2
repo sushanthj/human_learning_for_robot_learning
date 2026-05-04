@@ -1,0 +1,59 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# System packages (all HW2 deps)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common gnupg curl \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    build-essential swig git \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    python3.11 python3.11-dev python3.11-venv \
+    python3.12 python3.12-dev python3.12-venv \
+    wget unzip patchelf ffmpeg \
+    cmake ninja-build \
+    clang-14 libgl1-mesa-dev libglew-dev \
+    libxinerama-dev libxcursor-dev libxrandr-dev libxi-dev \
+    libegl1-mesa libgl1-mesa-glx libopengl0 \
+    libstdc++-12-dev xvfb \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
+
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
+    && pip install --upgrade pip setuptools wheel
+
+# MuJoCo 2.1.0
+RUN mkdir -p /root/.mujoco \
+    && wget -q https://mujoco.org/download/mujoco210-linux-x86_64.tar.gz -O /tmp/mujoco210.tar.gz \
+    && tar -xf /tmp/mujoco210.tar.gz -C /root/.mujoco \
+    && rm /tmp/mujoco210.tar.gz
+
+ENV LD_LIBRARY_PATH="/root/.mujoco/mujoco210/bin:/usr/lib/nvidia:${LD_LIBRARY_PATH}"
+
+# Install micromamba
+RUN curl -L micro.mamba.pm/install.sh | bash -s -- -b -p /root/micromamba
+ENV PATH="/root/.local/bin:$PATH"
+RUN micromamba config set channel_priority flexible
+
+# Build OpenCV from source (required by mujoco_mpc)
+RUN git clone --depth 1 https://github.com/opencv/opencv.git /tmp/opencv \
+    && mkdir -p /tmp/opencv/build \
+    && cmake /tmp/opencv \
+        -B /tmp/opencv/build \
+        -D CMAKE_C_COMPILER=/usr/bin/clang-14 \
+        -D CMAKE_CXX_COMPILER=/usr/bin/clang++-14 \
+        -D CMAKE_CXX_FLAGS="-stdlib=libstdc++" \
+        -D CMAKE_EXE_LINKER_FLAGS="-L/usr/lib/gcc/x86_64-linux-gnu/12" \
+    && make -C /tmp/opencv/build -j"$(nproc)" \
+    && make -C /tmp/opencv/build install \
+    && rm -rf /tmp/opencv
+
+RUN echo 'umask 0002' >> /root/.bashrc
+RUN echo 'eval "$(/root/.local/bin/micromamba shell hook --shell bash)"' >> /root/.bashrc
+RUN echo 'micromamba activate AC 2>/dev/null || true' >> /root/.bashrc
+
+WORKDIR /workspace
+CMD ["bash"]

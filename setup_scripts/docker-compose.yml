@@ -1,0 +1,47 @@
+x-common: &common
+  stdin_open: true
+  tty: true
+  volumes:
+    - ..:/workspace
+  working_dir: /workspace
+
+services:
+  prereqs:
+    <<: *common
+    build:
+      context: .
+      dockerfile: Dockerfile.prereqs
+    image: cs224r-prereqs
+    container_name: cs224r-prereqs
+
+  hw1:
+    <<: *common
+    build:
+      context: .
+      dockerfile: Dockerfile.hw1
+    image: cs224r-hw1
+    container_name: cs224r-hw1
+
+  hw2:
+    <<: *common
+    build:
+      context: .
+      dockerfile: Dockerfile.hw2
+    image: cs224r-hw2
+    container_name: cs224r-hw2
+
+  hw3:
+    <<: *common
+    build:
+      context: .
+      dockerfile: Dockerfile.hw3
+    image: cs224r-hw3
+    container_name: cs224r-hw3
+
+  hw4:
+    <<: *common
+    build:
+      context: .
+      dockerfile: Dockerfile.hw4
+    image: cs224r-hw4
+    container_name: cs224r-hw4
